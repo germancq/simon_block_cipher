@@ -21,8 +21,8 @@ from cocotb.triggers import FallingEdge, RisingEdge, Timer
 @cocotb.test()
 @cocotb.parametrize(index=range(0, 10))
 async def test(dut, index=0):
-    N = dut.N.value
-    M = dut.M.value
+    N = int(dut.N.value)
+    M = int(dut.M.value)
 
     print(N)
     print(M)
