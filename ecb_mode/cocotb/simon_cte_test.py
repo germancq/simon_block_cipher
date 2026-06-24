@@ -19,6 +19,7 @@ from cocotb.triggers import FallingEdge, RisingEdge, Timer
 
 
 @cocotb.test()
+@cocotb.parametrize(index=range(0, 10))
 async def test(dut, index=0):
     N = dut.N.value
     M = dut.M.value
@@ -40,10 +41,3 @@ async def test(dut, index=0):
     assert (
         dut.T.value == simon.T[N][M]
     ), f"ERROR with T, with N = {N} and M = {M}, expected_value = {simon.T[N][M]} and calculated = {dut.T.value}"
-
-
-n = 0x5
-factory = TestFactory(test)
-
-factory.add_option("index", range(0, n))
-factory.generate_tests()

@@ -14,14 +14,13 @@ import cocotb
 import numpy as np
 import simon
 from cocotb.clock import Clock
-from cocotb.regression import TestFactory
 from cocotb.triggers import FallingEdge, RisingEdge, Timer
 
 CLK_PERIOD = 20
 
 
 def setup_dut(dut, plaintext, key):
-    cocotb.fork(Clock(dut.clk, CLK_PERIOD, "ns").start())
+    cocotb.start_soon(Clock(dut.clk, CLK_PERIOD, unit="ns").start())
     dut.rst.value = 0
     dut.rq_data.value = 0
     dut.block_i.value = plaintext
@@ -36,7 +35,11 @@ async def n_cycles_clock(dut, n):
 
 
 @cocotb.test()
+@cocotb.parametrize(index=range(0, 10))
 async def test(dut, index=0):
+
+    random.seed(index)
+
     N = dut.N.value
     M = dut.M.value
 
@@ -49,7 +52,7 @@ async def test(dut, index=0):
     dut.rst.value = 1
     await n_cycles_clock(dut, 10)
     dut.rst.value = 0
-    dut.rq_data = 1
+    dut.rq_data.value = 1
 
     while dut.end_signal.value == 0:
         await n_cycles_clock(dut, 1)
@@ -59,10 +62,3 @@ async def test(dut, index=0):
     assert (
         dut.block_o.value == expected_result
     ), f"ERROR expected result = {hex(expected_result)}, calculated = {hex(dut.block_o.value)}"
-
-
-num = 0x15
-factory = TestFactory(test)
-
-factory.add_option("index", range(0, num))
-factory.generate_tests()

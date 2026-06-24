@@ -14,7 +14,6 @@ import cocotb
 import numpy as np
 import simon
 from cocotb.clock import Clock
-from cocotb.regression import TestFactory
 from cocotb.triggers import FallingEdge, RisingEdge, Timer
 
 CLK_PERIOD = 20
@@ -29,7 +28,7 @@ Z_sw = [
 
 
 def setup_dut(dut, key, Z):
-    cocotb.fork(Clock(dut.clk, CLK_PERIOD, "ns").start())
+    cocotb.start_soon(Clock(dut.clk, CLK_PERIOD, unit="ns").start())
     dut.rst.value = 0
     dut.start.value = 0
     dut.key.value = key
@@ -39,12 +38,12 @@ def setup_dut(dut, key, Z):
 async def rst_function_test(dut):
     dut.rst.value = 1
     await n_cycles_clock(dut, 1)
-    assert (
-        dut.current_state.value == dut.IDLE.value
+    assert int(dut.current_state.value) == int(
+        dut.IDLE.value
     ), f"ERROR STATE IN RST, STATE={dut.current_state.value}"
     await n_cycles_clock(dut, 10)
-    assert (
-        dut.current_state.value == dut.IDLE.value
+    assert int(dut.current_state.value) == int(
+        dut.IDLE.value
     ), f"ERROR STATE IN RST, STATE={dut.current_state.value}"
 
     assert dut.rk_counter_dout.value == 0, f"ERROR IDLE in counter"
@@ -65,15 +64,15 @@ async def preambule_test(dut, simon_sw, key):
 
     dut.rst.value = 0
     await n_cycles_clock(dut, 1)
-    assert (
-        dut.current_state.value == dut.IDLE.value
+    assert int(dut.current_state.value) == int(
+        dut.IDLE.value
     ), f"ERROR STATE IN RST, STATE={dut.current_state.value}"
 
     dut.start.value = 1
     await n_cycles_clock(dut, 1)
 
-    assert (
-        dut.current_state.value == dut.PREAMBULE.value
+    assert int(dut.current_state.value) == int(
+        dut.PREAMBULE.value
     ), f"ERROR STATE IN PREAMBULE, STATE={dut.current_state.value}"
 
     await n_cycles_clock(dut, 1)
@@ -92,7 +91,8 @@ async def key_schedule_loop_test(dut, simon_sw):
 
         if simon_sw.m == 4:
             aux0 = (
-                simon_sw.ror(simon_sw.n, simon_sw.round_keys[i + (simon_sw.m - 1)], 3)
+                simon_sw.ror(
+                    simon_sw.n, simon_sw.round_keys[i + (simon_sw.m - 1)], 3)
                 ^ simon_sw.round_keys[i + 1]
             )
             aux1 = aux0 ^ simon_sw.ror(simon_sw.n, aux0, 1)
@@ -118,8 +118,8 @@ async def key_schedule_loop_test(dut, simon_sw):
 
         print("ciclo {}".format(i))
 
-        assert (
-            dut.current_state.value == dut.CALC_AUX_0.value
+        assert int(dut.current_state.value) == int(
+            dut.CALC_AUX_0.value
         ), f"ERROR STATE IN CALC_AUX_0, STATE={dut.current_state.value}"
 
         await n_cycles_clock(dut, 1)
@@ -128,8 +128,8 @@ async def key_schedule_loop_test(dut, simon_sw):
             dut.reg_aux_dout.value == aux0
         ), f"ERROR IN AUX0, expected = {hex(aux0)}, calculated = {hex(dut.reg_aux_dout.value)}"
 
-        assert (
-            dut.current_state.value == dut.CALC_AUX_1.value
+        assert int(dut.current_state.value) == int(
+            dut.CALC_AUX_1.value
         ), f"ERROR STATE IN CALC_AUX_1, STATE={dut.current_state.value}"
 
         await n_cycles_clock(dut, 1)
@@ -138,8 +138,8 @@ async def key_schedule_loop_test(dut, simon_sw):
             dut.reg_aux_dout.value == aux1
         ), f"ERROR IN AUX1, expected = {hex(aux1)}, calculated = {hex(dut.reg_aux_dout.value)}"
 
-        assert (
-            dut.current_state.value == dut.WRITE_RK.value
+        assert int(dut.current_state.value) == int(
+            dut.WRITE_RK.value
         ), f"ERROR STATE IN WRITE_RK, STATE={dut.current_state.value}"
 
         assert (
@@ -149,8 +149,8 @@ async def key_schedule_loop_test(dut, simon_sw):
 
         await n_cycles_clock(dut, 1)
 
-        assert (
-            dut.current_state.value == dut.CHECK_COUNTER.value
+        assert int(dut.current_state.value) == int(
+            dut.CHECK_COUNTER.value
         ), f"ERROR STATE IN CHECK_COUNTER, STATE={dut.current_state.value}"
 
         i = i + 1
@@ -164,8 +164,8 @@ async def key_schedule_loop_test(dut, simon_sw):
 async def end_state_function_test(dut, simon_sw):
     await n_cycles_clock(dut, 1)
 
-    assert (
-        dut.current_state.value == dut.END_STATE.value
+    assert int(dut.current_state.value) == int(
+        dut.END_STATE.value
     ), f"ERROR STATE IN END, STATE={dut.current_state.value}"
 
     assert dut.end_signal.value == 1, f"ERROR in end_round signal"
@@ -183,7 +183,11 @@ async def n_cycles_clock(dut, n):
 
 
 @cocotb.test()
+@cocotb.parametrize(index=range(0, 10))
 async def test(dut, index=0):
+
+    random.seed(index)
+
     N = dut.N.value
     M = dut.M.value
     T = dut.T.value
@@ -202,10 +206,3 @@ async def test(dut, index=0):
     simon_cipher_sw_2.key_schedule(key)
 
     await end_state_function_test(dut, simon_cipher_sw_2)
-
-
-num = 0x15
-factory = TestFactory(test)
-
-factory.add_option("index", range(0, num))
-factory.generate_tests()

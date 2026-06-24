@@ -14,12 +14,14 @@ import cocotb
 import numpy as np
 import simon
 from cocotb.clock import Clock
-from cocotb.regression import TestFactory
 from cocotb.triggers import FallingEdge, RisingEdge, Timer
 
 
 @cocotb.test()
+@cocotb.parametrize(index=range(0, 10))
 async def test(dut, index=0):
+
+    random.seed(index)
 
     N = dut.N.value
     M = 3
@@ -53,10 +55,3 @@ async def test(dut, index=0):
     assert (
         dut.y_new.value == expected_y_new
     ), f"ERROR with y_new, with N = {N}, expected_value = {expected_y_new} and calculated = {dut.y_new.value}"
-
-
-n = 0x15
-factory = TestFactory(test)
-
-factory.add_option("index", range(0, n))
-factory.generate_tests()

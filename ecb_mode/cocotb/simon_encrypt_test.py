@@ -21,7 +21,7 @@ CLK_PERIOD = 20
 
 
 def setup_dut(dut, plaintext, simon_cipher_sw):
-    cocotb.fork(Clock(dut.clk, CLK_PERIOD, "ns").start())
+    cocotb.start_soon(Clock(dut.clk, CLK_PERIOD, unit="ns").start())
     dut.rst.value = 0
     dut.start.value = 0
     dut.blk_i.value = plaintext
@@ -32,12 +32,12 @@ def setup_dut(dut, plaintext, simon_cipher_sw):
 async def rst_function_test(dut):
     dut.rst.value = 1
     await n_cycles_clock(dut, 1)
-    assert (
-        dut.current_state.value == dut.IDLE.value
+    assert int(dut.current_state.value) == int(
+        dut.IDLE.value
     ), f"ERROR STATE IN RST, STATE={dut.current_state.value}"
     await n_cycles_clock(dut, 10)
-    assert (
-        dut.current_state.value == dut.IDLE.value
+    assert int(dut.current_state.value) == int(
+        dut.IDLE.value
     ), f"ERROR STATE IN RST, STATE={dut.current_state.value}"
 
     assert dut.rk_counter_dout.value == 0, f"ERROR IDLE in counter"
@@ -53,15 +53,15 @@ async def load_plaintext_test(dut, plaintext, simon_sw):
 
     dut.rst.value = 0
     await n_cycles_clock(dut, 1)
-    assert (
-        dut.current_state.value == dut.IDLE.value
+    assert int(dut.current_state.value) == int(
+        dut.IDLE.value
     ), f"ERROR STATE IN RST, STATE={dut.current_state.value}"
 
     dut.start.value = 1
     await n_cycles_clock(dut, 1)
 
-    assert (
-        dut.current_state.value == dut.LOAD_PLAINTEXT.value
+    assert int(dut.current_state.value) == int(
+        dut.LOAD_PLAINTEXT.value
     ), f"ERROR STATE IN LOAD_PLAINTEXT, STATE={dut.current_state.value}"
 
     await n_cycles_clock(dut, 1)
@@ -89,8 +89,8 @@ async def encrypt_loop_test(dut, plaintext, simon_sw):
 
         print("ciclo {}".format(i))
 
-        assert (
-            dut.current_state.value == dut.ROUND_FUNCTION.value
+        assert int(dut.current_state.value) == int(
+            dut.ROUND_FUNCTION.value
         ), f"ERROR STATE IN ROUND_FUNCTION, STATE={dut.current_state.value}"
 
         await n_cycles_clock(dut, 1)
@@ -103,14 +103,14 @@ async def encrypt_loop_test(dut, plaintext, simon_sw):
             dut.y_reg_dout.value == y_sw
         ), f"ERROR ROUND_FUNCTION in y_reg register, expected {hex(y_sw)}, calculated = {hex(dut.y_reg_dout.value)}"
 
-        assert (
-            dut.current_state.value == dut.ICR_COUNTER.value
+        assert int(dut.current_state.value) == int(
+            dut.ICR_COUNTER.value
         ), f"ERROR STATE IN ICR_COUNTER, STATE={dut.current_state.value}"
 
         await n_cycles_clock(dut, 1)
 
-        assert (
-            dut.current_state.value == dut.CHECK_COUNTER.value
+        assert int(dut.current_state.value) == int(
+            dut.CHECK_COUNTER.value
         ), f"ERROR STATE IN CHECK_COUNTER, STATE={dut.current_state.value}"
 
         i = i + 1
@@ -124,8 +124,8 @@ async def encrypt_loop_test(dut, plaintext, simon_sw):
 async def end_state_function_test(dut, expected_result):
     await n_cycles_clock(dut, 1)
 
-    assert (
-        dut.current_state.value == dut.END_STATE.value
+    assert int(dut.current_state.value) == int(
+        dut.END_STATE.value
     ), f"ERROR STATE IN END, STATE={dut.current_state.value}"
 
     assert dut.end_signal.value == 1, f"ERROR in end_round signal"
@@ -142,10 +142,14 @@ async def n_cycles_clock(dut, n):
 
 
 @cocotb.test()
+@cocotb.parametrize(index=range(0, 10))
 async def test(dut, index=0):
-    N = dut.N.value
-    M = dut.M.value
-    T = dut.T.value
+
+    random.seed(index)
+
+    N = int(dut.N.value)
+    M = int(dut.M.value)
+    T = int(dut.T.value)
 
     key = random.getrandbits(M * N)
     plaintext = random.getrandbits(2 * N)
@@ -160,10 +164,3 @@ async def test(dut, index=0):
 
     expected_result = simon_cipher_sw.encrypt(plaintext)
     await end_state_function_test(dut, expected_result)
-
-
-num = 0x15
-factory = TestFactory(test)
-
-factory.add_option("index", range(0, num))
-factory.generate_tests()
