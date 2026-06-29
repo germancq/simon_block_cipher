@@ -23,7 +23,7 @@ async def test(dut, index=0):
 
     random.seed(index)
 
-    N = dut.N.value
+    N = int(dut.N.value)
     M = 3
     if N == 16:
         M = 4
