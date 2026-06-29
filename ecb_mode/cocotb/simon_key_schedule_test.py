@@ -143,7 +143,8 @@ async def key_schedule_loop_test(dut, simon_sw):
         ), f"ERROR STATE IN WRITE_RK, STATE={dut.current_state.value}"
 
         assert (
-            dut.reg_rk_din[dut.rk_counter_dout.value + dut.M.value].value
+            dut.reg_rk_din[int(dut.rk_counter_dout.value) +
+                           int(dut.M.value)].value
             == simon_sw.round_keys[i + simon_sw.m]
         ), f"ERROR IN WRITE_RK, expected = {hex(simon_sw.round_keys[i + simon_sw.m])}, calculated = {hex(dut.reg_aux_din[dut.rk_counter_dout.value + dut.M.value])}"
 
