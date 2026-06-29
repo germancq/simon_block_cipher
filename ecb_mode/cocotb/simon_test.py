@@ -40,8 +40,8 @@ async def test(dut, index=0):
 
     random.seed(index)
 
-    N = dut.N.value
-    M = dut.M.value
+    N = int(dut.N.value)
+    M = int(dut.M.value)
 
     key = random.getrandbits(M * N)
     plaintext = random.getrandbits(2 * N)
