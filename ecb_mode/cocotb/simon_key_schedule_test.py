@@ -156,7 +156,7 @@ async def key_schedule_loop_test(dut, simon_sw):
 
         i = i + 1
 
-        if i == dut.T.value - dut.M.value:
+        if i == (int(dut.T.value) - int(dut.M.value)):
             return
 
         await n_cycles_clock(dut, 1)
